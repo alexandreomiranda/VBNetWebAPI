@@ -1,6 +1,7 @@
 ﻿Imports System.Security.Claims
 Imports System.Threading.Tasks
 Imports ApplicationService
+Imports Microsoft.Owin.Security
 Imports Microsoft.Owin.Security.OAuth
 
 Public Class MyAuthorizationServerProvider
@@ -27,9 +28,23 @@ Public Class MyAuthorizationServerProvider
         End If
 
         Dim identity = New ClaimsIdentity(context.Options.AuthenticationType)
+        identity.AddClaim(New Claim(ClaimTypes.Name, userLogin.Name))
 
-        context.Validated(identity)
+        Dim props = New AuthenticationProperties(New Dictionary(Of String, String)() From {
+            {"nome", userLogin.Name},
+            {"email", userLogin.Email}
+        })
+
+        Dim ticket = New AuthenticationTicket(identity, props)
+
+        context.Validated(ticket)
+
         Await Task.FromResult(Of Object)(Nothing)
     End Function
-
+    Public Overrides Async Function TokenEndpoint(context As OAuthTokenEndpointContext) As Task
+        For Each [dadosUsuario] As KeyValuePair(Of String, String) In context.Properties.Dictionary
+            context.AdditionalResponseParameters.Add([dadosUsuario].Key, [dadosUsuario].Value)
+        Next
+        Await Task.FromResult(Of Object)(Nothing)
+    End Function
 End Class
